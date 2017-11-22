@@ -11,10 +11,15 @@ Follow the steps to run the app
 wget http://download.qt.io/official_releases/qt/5.7/5.7.0/qt-opensource-linux-x64-5.7.0.run
 ```
 
-Adjust permission, run the installer and follow the instruction to complete the installation.
+Adjust permission
 
 ```sh
 chmod +x qt-opensource-linux-x64-5.7.0.run
+```
+
+Run the installer and follow the instruction to complete the installation.
+
+```sh
 ./qt-opensource-linux-x64-5.7.0.run
 ```
 
