@@ -18,7 +18,7 @@ chmod +x qt-opensource-linux-x64-5.7.0.run
 ./qt-opensource-linux-x64-5.7.0.run
 ```
 
-## Step 2) Installing C++
+### Step 2) Installing C++
 
 Open a terminal and execute the following command to install g++:
 
