@@ -30,3 +30,11 @@ Open a terminal and execute the following command to install g++:
 ```sh
 sudo apt-get install build-essential
 ```
+
+### Step 3) Install generic font configuration library - runtime
+
+Open a terminal and execute the following command to install the full runtime files for the generic font configuration library:
+
+```sh
+sudo apt-get install libfontconfig1
+```
