@@ -31,10 +31,18 @@ Open a terminal and execute the following command to install g++:
 sudo apt-get install build-essential
 ```
 
-### Step 3) Install generic font configuration library - runtime
+### Step 3) Installing generic font configuration library - runtime
 
 Open a terminal and execute the following command to install the full runtime files for the generic font configuration library:
 
 ```sh
 sudo apt-get install libfontconfig1
+```
+
+### Step 4) Installing OpenGL libraries
+
+Execute the following command to install OpenGL libraries
+
+```sh
+sudo apt-get install mesa-common-dev libglu1-mesa-dev
 ```
