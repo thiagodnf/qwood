@@ -444,7 +444,7 @@ void MainWindow::exibirAbout()
                           "Thiago do Nascimento Ferreira<br>"
                           "Débora de Vasconcelos Martins<br><br>"
                           "Versão: 1.8<br><br>"
-                          "Site: <a href='www.thiagonascimento.info'>www.thiagonascimento.info</a></body></html>"));
+                          "Site: <a href='www.github.com/thiagodnf'>www.github.com/thiagodnf</a></body></html>"));
 }
 
 void MainWindow::zoomIn(void)
