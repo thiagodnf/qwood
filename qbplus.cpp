@@ -1,0 +1,871 @@
+#include <cmath>
+#include <QString>
+#include <QQueue>
+#include <QFile>
+#include <iostream>
+#include <QGraphicsItem>
+#include <QLabel>
+#include <iostream>
+
+#include <QtCore/QtCore>
+
+#include "qbplusnodo.h"
+#include "qbplus.h"
+
+#define NOINTERNO 1
+#define FOLHA 2
+#define FILE 3
+
+using namespace std;
+
+QBPlus::QBPlus():QBase()
+{
+    QBPlus(0,2);
+}
+
+QBPlus::QBPlus(int alinhamento,int ordem_):
+        QBase(),
+        ptraiz(0),
+        fileRaiz(0),
+        ordem(ordem_),
+        tipoAlinhamento(alinhamento)
+{
+
+}
+
+QBPlus::~QBPlus(void)
+{
+    limparTudo();
+}
+
+QBPlusNodo* QBPlus::inserir(QBPlusNodo* p,int x, QBPlusNodo* pai)
+{
+    /** @todo*/
+}
+
+void QBPlus::bubbleSort(QBPlusNodo* p)
+{
+    for(int i=0;i<p->index-1;i++){
+        for(int j=0;j<p->index-1;j++){
+            if(p->valores[j] > p->valores[j+1]){
+                int aux = p->valores[j];
+                p->valores[j] = p->valores[j+1];
+                p->valores[j+1] = aux;
+
+                /*Troca os ponteiros*/
+                QBPlusNodo* cop = p->filhos[j+1];
+                p->filhos[j+1] = p->filhos[j+2];
+                p->filhos[j+2] = cop;
+
+            }
+        }
+    }
+
+}
+
+void QBPlus::alinhamentoFile(void)
+{
+    if(fileRaiz != 0){
+        int index = 0;
+        QBPlusNodo* p = fileRaiz;
+        //int quant = quantidadeDeFolhas(ptraiz);
+
+        fileRaiz->setParentItem(ptraiz);
+
+        while(p != 0){
+            p = p->prox;
+            index++;
+        }
+        int total = 40*(2*ordem)*index+(index-1)*40-40*(ptraiz->index);
+
+        int altura = alturaArvore(ptraiz);
+        //int altura = 1;
+
+        p = fileRaiz;
+        p->setY(100*altura+100);
+        p->setX(-total/2);
+        p = p->prox;
+        index = 1;        
+        while(p != 0){
+            p->setY(50+100*altura+100);
+            p->setX(fileRaiz->x()+index*40*ordem*2+40+40*(index-1));
+            p = p->prox;
+            index++;
+        }
+    }
+}
+
+void QBPlus::inserirValor(int x)
+{
+     cerr<<"Ultimo Valor: "<<x<<endl;
+    if(buscar(ptraiz,x,false) != 0) throw "B: O valor já existe";
+    else{
+        if(vazia()){
+//            ptraiz = new QBPlusFileNodo(ordem,0,0);
+            ptraiz = new QBPlusNodo(ordem,fileRaiz,0,FILE);
+            ptraiz->valores[ptraiz->index++] = x;
+            bubbleSort(ptraiz);
+            QBase::getScene()->addItem(ptraiz);
+        }else{
+            QBPlusNodo* p = ptraiz;
+            QBPlusNodo* pai = 0;
+            /*Procuramos um nó folha para inserir o valor*/
+            while(p->tipo != FILE){
+                pai = p;
+                p = p->buscarPagina(x);                
+            }
+
+            QBPlusNodo* node2 = 0;
+            while(1){
+                if(!p->cheio()){
+                    p->valores[p->index++] = x;
+
+
+                    p->filhos[p->index] = node2;
+                    if(node2 != 0){
+                        if(node2->tipo == FILE){
+                            /*Procura o ultimo elemento do arquivo*/
+                            QBPlusNodo* aux = fileRaiz;
+                            while(aux->prox != 0)
+                                aux = aux->prox;
+                            aux->prox = node2;
+                        }else{
+                             node2->setParentItem(p);
+                        }
+                    }
+
+                    bubbleSort(p);
+                    break;
+                }else{
+                    p->valores[p->index++] = x;
+                    p->filhos[p->index] = node2;
+                    if(node2 != 0){
+                        if(node2->tipo != FILE)
+                            node2->setParentItem(p);
+                    }
+
+                    bubbleSort(p);
+                    QBPlusNodo* aux = node2;
+//
+                    node2 = new QBPlusNodo(ordem,fileRaiz);
+//
+                    QBase::getScene()->addItem(node2);
+                    //node2->filhos[node2->index] = aux;
+//
+                    x = split(p,node2);
+//
+
+
+                    if(aux != 0){
+                        if(aux->tipo == FILE){
+                            QBPlusNodo* q = fileRaiz;
+                                while(q->prox != 0){
+                                q = q->prox;
+                            }
+                            q->prox = aux;
+                        }
+                    }
+
+
+                    if(aux != 0){                        
+                        if(aux->tipo == FILE)
+                            node2->tipo = FOLHA;
+                        else
+                            node2->tipo = NOINTERNO;
+                    }
+//
+                    QBPlusNodo* node1 = p;
+                    if(node1 == ptraiz){
+                        if(ptraiz->tipo == FILE){
+                            ptraiz = new QBPlusNodo(ordem,fileRaiz,0,FOLHA);
+                            QBase::getScene()->addItem(ptraiz);                            
+                            ptraiz->valores[ptraiz->index++] = x;
+                            ptraiz->filhos[ptraiz->index-1] = node1;
+                            ptraiz->filhos[ptraiz->index] = node2;
+                            fileRaiz = node1;
+                            ptraiz->primeiroArquivo = fileRaiz;
+                            node1->prox = node2;                            
+                            break;
+                        }else{
+                        ptraiz = new QBPlusNodo(ordem,fileRaiz,0,NOINTERNO);
+                        QBase::getScene()->addItem(ptraiz);
+
+                        ptraiz->valores[ptraiz->index++] = x;
+                        ptraiz->filhos[ptraiz->index-1] = node1;
+                        ptraiz->filhos[ptraiz->index] = node2;
+
+                        node1->setParentItem(ptraiz);
+                        node2->setParentItem(ptraiz);
+//
+                        break;
+                        }
+                    }else{
+                        if(p->tipo == FILE)
+                            p = pai;
+                        else
+                            p = (QBPlusNodo*) p->parentItem();
+                    }
+                }
+            }
+
+        }
+    }
+
+    alinhamentoCompleto(ptraiz,0);
+    alinhamentoFile();
+    QBase::update();   
+
+}
+
+int QBPlus::split(QBPlusNodo* fonte, QBPlusNodo* destino)
+{
+    int valorMedio = 0;
+
+    int contador = ordem+1;
+    fonte->index = ordem;
+    while(contador <= ordem*2){
+        destino->valores[destino->index++] = fonte->valores[contador];
+        destino->filhos[destino->index-1] = fonte->filhos[contador];
+
+        if(destino->filhos[destino->index-1] != 0)
+            if(destino->filhos[destino->index-1]->tipo != FILE)
+                destino->filhos[destino->index-1]->setParentItem(destino);
+
+        fonte->filhos[contador] = 0;
+        fonte->valores[contador] = 50505050;
+        contador++;
+    }
+
+    destino->filhos[destino->index] = fonte->filhos[contador];
+
+    if(destino->filhos[destino->index] != 0)
+        if(destino->filhos[destino->index]->tipo != FILE)
+            destino->filhos[destino->index]->setParentItem(destino);
+
+    if(fonte->filhos[fonte->index] != 0)
+        if(fonte->filhos[fonte->index]->tipo != FILE)
+            fonte->filhos[fonte->index]->setParentItem(fonte);
+
+    fonte->filhos[contador] = 0;
+
+    if(fonte->tipo == FILE){
+        destino->tipo = FILE;
+        valorMedio =  fonte->valores[fonte->index];
+        fonte->index++;
+    }else{
+        valorMedio =  fonte->valores[fonte->index];
+        fonte->valores[fonte->index] = 50505050;
+    }
+
+    return valorMedio;
+
+}
+
+int QBPlus::alturaArvore(QBPlusNodo* p)
+{
+    int altura = 0;
+    if(p != 0){
+        for(int i=0;i<p->quantidadeDeFilhos();i++){
+            int alt_filhos = alturaArvore(p->filhos[i]);
+            alt_filhos++;
+            if(alt_filhos > altura) altura = alt_filhos;
+        }
+    }
+    return altura;
+}
+
+void QBPlus::alinhamentoCompleto(QBPlusNodo* p,int dir)
+{
+    if(p != 0){
+        if(p->parentItem() != 0) p->setY(100);
+        if(p->tipo != FILE ){
+            if(p->tipo == NOINTERNO){
+                for(int i=0;i<p->quantidadeDeFilhos();i++){
+                    alinhamentoCompleto(p->filhos[i],dir+1);
+
+                    int altura = alturaArvore(p);
+
+                    if(altura == 1){
+
+                        int quantValores = quantidadeDeValoresFolhas(p);
+                        int quantFilhos = p->quantidadeDeFilhos()-1;
+
+                        int espacoTotal = quantValores*40+quantFilhos*40;
+
+                        if(i == 0){
+                            quantValores = quantidadeDeValoresFolhas(p->filhos[0]);
+                            p->filhos[i]->setX(-espacoTotal/2+20*(p->index));
+                        }else{
+                            quantFilhos = quantValores = 0;
+
+                            for(int j=0;j<i;j++){
+                                quantValores += quantidadeDeValoresFolhas(p->filhos[j]);
+                                quantFilhos++;
+                            }
+
+                            p->filhos[i]->setX(-espacoTotal/2+20*(p->index)+quantValores*40+40*quantFilhos);
+
+                        }
+                    }else{
+//                        int quantValores = quantidadeDeValoresFolhas(p);
+//                        int quantValoresTotal = quantidadeDeValoresTotal(p);
+//
+                        int quantFiles = 0;
+                        QBPlusNodo* aux = fileRaiz;
+                        while(aux != 0){
+                            aux = aux->prox;
+                            quantFiles++;
+                        }
+
+                        int quantValores = quantidadeDeValoresFolhas(p);
+                        int quantValoresTotal = quantidadeDeValoresTotal(p);
+                        int espacoTotal = 40*quantValoresTotal;
+
+                        if(i == 0){
+//                            int espacoTotal = quantFiles*4+(quantFiles-1);
+//                            int qFilhos = p->quantidadeDeFilhos();
+//
+//                            int posX = espacoTotal/2+p->filhos[0]->index;//+20*quantValores+20*(p->index-1);
+//                            p->filhos[i]->setX(-40*espacoTotal/qFilhos);
+
+
+                            quantValores = quantidadeDeValoresTotal(p->filhos[0]);
+                            int posX = -espacoTotal/2+20*quantValores+20*(p->index-1);
+                            p->filhos[i]->setX(posX);
+                        }else{
+//                            int quantFilhos = 0 ;
+//                            int quantValores = 0;
+//
+//                            for(int j=0;j<i;j++){
+//                                quantValores += quantidadeDeValoresTotal(p->filhos[j]);
+//                                quantFilhos++;
+//                            }
+//
+//                            QBPlusNodo* q = p;
+//                            while(q->filhos[0] != 0){
+//                                q = q->filhos[0];
+//                            }
+//
+//                            QPointF point = p->mapFromItem(q,0,0);
+//
+//                            /*fator usado para deslocar o nó corrente o tamanho necessário para desenhar seus filhos*/
+//                            int fator = 40*quantidadeDeValoresTotal(p->filhos[i])/2-20;
+//
+//                            int total = (quantFiles*4+(quantFiles-1))/(p->quantidadeDeFilhos())+1+(p->filhos[i-1]->index);
+//                            //total += p->index + p->filhos[i]->index;
+//                            //cerr<<"total: "<<total<<endl;
+//
+//                            //p->filhos[i]->setX(point.x()+40*total);
+//                            p->filhos[i]->setX(p->filhos[i-1]->x()+40*total-40*(p->filhos[i]->index));
+
+                                int quantFilhos = 0 ;
+                                int quantValores = 0;
+
+                                for(int j=0;j<i;j++){
+                                    quantValores += quantidadeDeValoresTotal(p->filhos[j]);
+                                    quantFilhos++;
+                                }
+
+                                QBPlusNodo* q = p;
+                                while(q->filhos[0] != 0){
+                                    q = q->filhos[0];
+                                }
+
+                                QPointF point = p->mapFromItem(q,0,0);
+
+                                /*fator usado para deslocar o nó corrente o tamanho necessário para desenhar seus filhos*/
+                                int fator = 40*quantidadeDeValoresTotal(p->filhos[i])/2-20;
+
+                                p->filhos[i]->setX(point.x()+40*(quantValores+1)+fator+40*(quantFilhos-1)-20*(p->filhos[i]->index-1));
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void QBPlus::alinhamentoPadrao(QBPlusNodo* p,int dir)
+{
+    /** @todo */
+}
+
+int QBPlus::quantidadeDeNos(QBPlusNodo* p)
+{
+    int quant = 0;
+    if(p != 0){
+       for(int i=0;i<p->quantidadeDeFilhos();i++){
+            quant = quant + quantidadeDeNos(p->filhos[i]);
+       }
+       quant++;
+    }
+    return quant;
+}
+
+int QBPlus::quantidadeDeFolhas(QBPlusNodo* p)
+{
+    int quant = 0;
+    if(p != 0){
+       for(int i=0;i<p->quantidadeDeFilhos();i++){
+            quant = quant + quantidadeDeFolhas(p->filhos[i]);
+       }
+       if(p->folha()) quant++;
+    }
+    return quant;
+}
+
+int QBPlus::quantidadeDeValoresFolhas(QBPlusNodo* p)
+{
+    int quant = 0;
+    if(p != 0){
+       for(int i=0;i<p->quantidadeDeFilhos();i++){
+            quant = quant + quantidadeDeValoresFolhas(p->filhos[i]);
+       }
+       if(p->tipo == FILE) quant += p->index;
+    }
+    return quant;
+}
+
+int QBPlus::quantidadeDeValoresTotal(QBPlusNodo* p)
+{
+    int quant = 0;
+    if(p != 0){
+       for(int i=0;i<p->quantidadeDeFilhos();i++){
+            quant = quant + quantidadeDeValoresTotal(p->filhos[i]);
+       }
+       if(p->tipo == FILE)
+           quant += 4;
+       else
+           quant += p->index;
+    }
+    return quant;
+}
+
+bool QBPlus::vazia(void){
+    return ptraiz == 0;
+}
+
+void QBPlus::limparTudo(void)
+{
+//    while(!vazia()){
+//        removerValor(ptraiz->valores[0]);
+//    }
+}
+
+bool QBPlus::buscarValor(int x)
+{
+    QBase::update();
+    bool achou = false;
+    if(vazia()) throw "A B esta vazia!";
+    else{
+        QBPlusNodo* p = buscar(ptraiz,x,true);
+        if(p != 0){
+            achou = true;
+            p->setBusca();
+        }
+    }
+    return achou;
+}
+
+QBPlusNodo* QBPlus::buscar(QBPlusNodo* p,int x,bool pintar)
+{
+    if(p != 0){
+
+        int inicio = 0;
+        int fim = p->index-1;
+
+        while(inicio <= fim){
+            int media = floor((inicio+fim)/2);
+            if(x == p->valores[media]){            
+                if(p->tipo  == FILE){            
+                    if(pintar) p->indiceBuscado = media;
+                    return p;
+                }else{
+                    if(inicio == fim){
+                        if(x > p->valores[media]){
+                            return buscar(p->filhos[media+1],x,pintar);
+                        }
+                        if(x <= p->valores[media]){
+                            if(media==0){
+                                return buscar(p->filhos[0],x,pintar);
+                            }else{
+                                return buscar(p->filhos[media],x,pintar);
+                            }
+                        }
+                    }else{
+                        if(x > p->valores[media]){
+                            inicio = media+1;
+                        }
+                        if(x <= p->valores[media]){
+                            if(media==0) fim = media;
+                            if(inicio == media) fim=media;
+                            else fim = media-1;
+                        }
+                    }
+                }
+            }else{
+
+                if(inicio == fim){
+                    if(x > p->valores[media]){
+                        return buscar(p->filhos[media+1],x,pintar);
+                    }
+                    if(x < p->valores[media]){
+                        if(media==0) return buscar(p->filhos[0],x,pintar);
+                        else return buscar(p->filhos[media],x,pintar);
+                    }
+                }else{
+                    if(x > p->valores[media]){
+                        inicio = media+1;
+                    }
+                    if(x < p->valores[media]){
+                        if(media==0) fim = media;
+                        if(inicio == media) fim=media;
+                        else fim = media-1;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+    else return 0;
+}
+
+void QBPlus::remover(QBPlusNodo* p, int x)
+{
+//    QBPlusNodo* node = buscar(p,x,false);
+//
+//    /*Se retornou 0 é porque o elemento não existe na árvore*/
+//    if(node != 0){
+//        if(!node->folha()){
+//            /*Encontraremos a folha com o sucessor mais próximo de "x"*/
+//            int indiceRemocao = node->getPosicao(x);
+//            QBPlusNodo* suc = node->filhos[indiceRemocao+1];
+//            while(suc->filhos[0] != 0){
+//                suc = suc->filhos[0];
+//            }
+//
+//            node->valores[indiceRemocao] = suc->valores[0];
+//            node = suc;
+//            /*Remove o elemento da folha*/
+//            for(int i=0;i<suc->index-1;i++){
+//                suc->valores[i] = suc->valores[i+1];
+//            }
+//            suc->valores[suc->index--] = -1;
+//        }else{  /*Apenas removemos o valor do nó*/
+//            /*Pega a posição do nó no vetor*/
+//            int indiceRemocao = node->getPosicao(x);
+//            /*Remove o elemento*/
+//            for(int i=indiceRemocao;i<node->index-1;i++){
+//                node->valores[i] = node->valores[i+1];
+//            }
+//            node->valores[node->index--] = -1;
+//        }
+//        while(1){
+//            if(node == ptraiz){
+//                if(node->index == 0){
+//                    QBase::getScene()->removeItem(node);
+//                    delete node;
+//                    ptraiz = 0;
+//                }
+//                return;
+//            }
+//
+//            /*Verifica se o nó não está subutilizado*/
+//            if(node->index >= ordem){
+//                return;
+//            }else if(irmaoComNosSobrando(node->irmaoDireita(),node->irmaoEsquerda()) != 0){
+//                /*Redistribuir as chaves entre os irmãos*/
+//                QBPlusNodo* irmao = irmaoComNosSobrando(node->irmaoDireita(),node->irmaoEsquerda());
+//                int posicao = node->posicaoEmRelacaoAoPai();
+//                QBPlusNodo* pai = (QBPlusNodo*) node->parentItem();
+//
+//                if(irmao == node->irmaoDireita()){
+//                    node->valores[node->index++] = pai->valores[posicao];
+//                    pai->valores[posicao] = irmao->valores[0];
+//                    /*Remove o elemento da folha*/
+//                    for(int i=0;i<irmao->index-1;i++){
+//                        irmao->valores[i] = irmao->valores[i+1];
+//                    }
+//                    /*Transfere-se o filho do irmão para o node*/
+//                    node->filhos[node->index] = irmao->filhos[0];
+//                    /*Colocamos agora um novo para o filho de do irmão que será agora o node*/
+//                    if(node->filhos[node->index] != 0)
+//                        node->filhos[node->index]->setParentItem(node);
+//                    /*Atualiza os filhos do irmão*/
+//                    for(int i=0;i<irmao->index;i++){
+//                        irmao->filhos[i] = irmao->filhos[i+1];
+//                    }
+//                    irmao->valores[--irmao->index] = -1;
+//                    irmao->filhos[irmao->index+1] = 0;
+//                }else if(irmao == node->irmaoEsquerda()){
+//
+//                    /*Fasta o valor para que seja possível adicionar o novo*/
+//                    for(int i=node->index-1;i>=0;i--){
+//                        node->valores[i+1] = node->valores[i];
+//                    }
+//                    node->valores[0] = pai->valores[posicao-1];
+//                    node->index++;
+//
+//                    /*Organiza-se os filhos do node para receber o novo filho*/
+//                    for(int i=node->index-1;i>=0;i--){
+//                        node->filhos[i+1] = node->filhos[i];
+//                    }
+//                    node->filhos[0] = irmao->filhos[irmao->index];
+//                    if(node->filhos[0] != 0)
+//                        node->filhos[0]->setParentItem(node);
+//
+//                    pai->valores[posicao-1] = irmao->valores[irmao->index-1];
+//
+//                    irmao->valores[irmao->index-1] = -1;
+//                    irmao->filhos[irmao->index--] = 0;
+//                }
+//                return;
+//            }else if( ((QBPlusNodo*)node->parentItem()) == ptraiz){
+//                QBPlusNodo* pai = (QBPlusNodo*) node->parentItem();
+//                if(pai->index == 1){
+//                    /*Fusão entre o node,seu irmao e o ascendente formará uma nova raiz*/
+//                    QBPlusNodo* irmao = 0;
+//                    if(pai->filhos[0] == node){
+//                        irmao = pai->filhos[1];
+//                        node->valores[node->index++] = pai->valores[pai->index-1];
+//                        pai->filhos[pai->index-1] = 0;
+//                        int aux = node->index;
+//                        /*Copia os valores para o irmão*/
+//                        for(int i=0;i<irmao->index;i++){
+//                            node->valores[node->index++] = irmao->valores[i];
+//                        }
+//                        /*Copia os ponteiros para o irmão*/
+//
+//                        for(int i=0;i<=irmao->index;i++){
+//                            node->filhos[aux++]=  irmao->filhos[i];
+//                            if(node->filhos[aux-1] != 0)
+//                                node->filhos[aux-1]->setParentItem(node);
+//                            irmao->filhos[i] = 0;
+//                        }
+//
+//                        bubbleSort(node);
+//
+//                        node->setPos(pai->pos());
+//                        node->setParentItem(0);
+//
+//                        ptraiz = node;
+//                        delete irmao;
+//                    }else{
+//                        irmao = pai->filhos[0];
+//                        irmao->valores[irmao->index++] = pai->valores[pai->index-1];
+//                        pai->filhos[pai->index-1] = 0;
+//                        int aux = irmao->index;
+//                        /*Copia os valores para o irmão*/
+//                        for(int i=0;i<node->index;i++){
+//                            irmao->valores[irmao->index++] = node->valores[i];
+//                        }
+//                        /*Copia os ponteiros para o irmão*/
+//
+//                        for(int i=0;i<=node->index;i++){
+//                            irmao->filhos[aux++]=  node->filhos[i];
+//                            if(irmao->filhos[aux-1] != 0)
+//                                irmao->filhos[aux-1]->setParentItem(irmao);
+//                            node->filhos[i] = 0;
+//                        }
+//
+//                        bubbleSort(irmao);
+//
+//                        irmao->setPos(pai->pos());
+//                        irmao->setParentItem(0);
+//
+//                        ptraiz = irmao;
+//                        delete node;
+//                    }
+//
+//                    delete pai;
+//
+//                }else{/*A raiz possui mais de uma chave, faremos apenas a fusão entre os filhos*/
+//                    int posicaoEmRelacaoPai = node->posicaoEmRelacaoAoPai();
+//                    QBPlusNodo* irmao = 0;
+//                    if(posicaoEmRelacaoPai == pai->index){
+//                        irmao = pai->filhos[pai->index-1];
+//                        irmao->valores[irmao->index++] = pai->valores[posicaoEmRelacaoPai-1];
+//                        pai->filhos[posicaoEmRelacaoPai] = 0;
+//                        int aux = irmao->index;
+//                        /*Copia os valores para o irmão*/
+//                        for(int i=0;i<node->index;i++){
+//                            irmao->valores[irmao->index++] = node->valores[i];
+//                        }
+//                        /*Copia os ponteiros para o irmão*/
+//                        for(int i=0;i<=node->index;i++){
+//                            irmao->filhos[aux++]=  node->filhos[i];
+//                            if(irmao->filhos[aux-1] != 0) irmao->filhos[aux-1]->setParentItem(irmao);
+//                            node->filhos[i] = 0;
+//                        }
+//                        bubbleSort(irmao);
+//                        //QBase::getScene()->removeItem(node);
+//                        delete node;
+//                        /*Remove o elemento do pai e o reorganiza*/
+//                        for(int i=posicaoEmRelacaoPai-1;i<pai->index-1;i++){
+//                            irmao->valores[i] = irmao->valores[i+1];
+//                        }
+//                        pai->valores[--pai->index] = -1;
+//                        pai->filhos[pai->index+1] = 0;
+//                    }else{
+//                        irmao = pai->filhos[posicaoEmRelacaoPai+1];
+//                        node->valores[node->index++] = pai->valores[posicaoEmRelacaoPai];
+//                         int aux = irmao->index;
+//                        /*Copia os valores do irmao para o node*/
+//                        for(int i=0;i<irmao->index;i++){
+//                            node->valores[node->index++] = irmao->valores[i];
+//                        }
+//                        /*Copia os filhos do irmão para o node*/
+//                        for(int i=0;i<=irmao->index;i++){
+//                            node->filhos[aux++]=  irmao->filhos[i];
+//                            if(node->filhos[aux-1] != 0) node->filhos[aux-1]->setParentItem(node);
+//                            irmao->filhos[i] = 0;
+//                        }
+//                        /*Remove o elemento do pai e o reorganiza*/
+//                        for(int i=posicaoEmRelacaoPai;i<pai->index-1;i++){
+//                            pai->valores[i] = pai->valores[i+1];
+//                            pai->filhos[i+1] = pai->filhos[i+2];
+//                        }
+//                        pai->valores[--pai->index] = -1;
+//                        pai->filhos[pai->index+1] = 0;
+//
+//                        //QBase::getScene()->removeItem(irmao);
+//                        delete irmao;
+//                    }
+//                }
+//                return;
+//            }else{/*Caso seja um nó interno*/
+//                QBPlusNodo* pai = (QBPlusNodo*) node->parentItem();
+//                int posicaoEmRelacaoPai = node->posicaoEmRelacaoAoPai();
+//                QBPlusNodo* irmao = 0;
+//                if(posicaoEmRelacaoPai == pai->index){
+//                    irmao = pai->filhos[pai->index-1];
+//                    irmao->valores[irmao->index++] = pai->valores[posicaoEmRelacaoPai-1];
+//                    pai->filhos[posicaoEmRelacaoPai] = 0;
+//                    int aux = irmao->index;
+//                    /*Copia os valores para o irmão*/
+//                    for(int i=0;i<node->index;i++){
+//                        irmao->valores[irmao->index++] = node->valores[i];
+//                    }
+//                    /*Copia os ponteiros para o irmão*/
+//                    for(int i=0;i<=node->index;i++){
+//                        irmao->filhos[aux++]=  node->filhos[i];
+//                        if(irmao->filhos[aux-1] != 0) irmao->filhos[aux-1]->setParentItem(irmao);
+//                        node->filhos[i] = 0;
+//                    }
+//                    bubbleSort(irmao);
+//                    //QBase::getScene()->removeItem(node);
+//                    delete node;
+//                    /*Remove o elemento do pai e o reorganiza*/
+//                    for(int i=posicaoEmRelacaoPai-1;i<pai->index-1;i++){
+//                        irmao->valores[i] = irmao->valores[i+1];
+//                    }
+//                    pai->valores[--pai->index] = -1;
+//                    pai->filhos[pai->index+1] = 0;
+//                }else{
+//                    irmao = pai->filhos[posicaoEmRelacaoPai+1];
+//                    node->valores[node->index++] = pai->valores[posicaoEmRelacaoPai];
+//                     int aux = irmao->index;
+//                    /*Copia os valores do irmao para o node*/
+//                    for(int i=0;i<irmao->index;i++){
+//                        node->valores[node->index++] = irmao->valores[i];
+//                    }
+//                    /*Copia os filhos do irmão para o node*/
+//                    for(int i=0;i<=irmao->index;i++){
+//                        node->filhos[aux++]=  irmao->filhos[i];
+//                        if(node->filhos[aux-1] != 0) node->filhos[aux-1]->setParentItem(node);
+//                        irmao->filhos[i] = 0;
+//                    }
+//                    /*Remove o elemento do pai e o reorganiza*/
+//                    for(int i=posicaoEmRelacaoPai;i<pai->index-1;i++){
+//                        pai->valores[i] = pai->valores[i+1];
+//                        pai->filhos[i+1] = pai->filhos[i+2];
+//                    }
+//                    pai->valores[--pai->index] = -1;
+//                    pai->filhos[pai->index+1] = 0;
+//
+//                    //QBase::getScene()->removeItem(irmao);
+//                    delete irmao;
+//                }
+//                node = pai;
+//
+//
+//            }
+//
+//        }
+//    }else throw "Arvore B: O elemento não existe";
+
+}
+
+QBPlusNodo* QBPlus::irmaoComNosSobrando(QBPlusNodo* dir,QBPlusNodo* esq)
+{
+    QBPlusNodo* irmao = 0;
+    if(dir == 0){/*Possui somente o irmão da esquerda*/
+        if(esq->index > ordem) irmao = esq;
+    }else if(esq == 0){ /*Somente possui irmão direita*/
+        if(dir->index > ordem) irmao = dir;
+    }else{/*Possui os dois irmãos*/
+        if(dir->index > ordem) irmao = dir;
+        else if(esq->index > ordem) irmao = esq;
+    }
+    return irmao;
+}
+
+void QBPlus::removerValor(int x)
+{
+//    if(vazia()) throw "A arvore B está vazia!";
+//    else remover(ptraiz,x);
+//
+//    alinhamentoCompleto(ptraiz,3);
+//    QBase::update();
+}
+
+QList<int> QBPlus::imprimirEmLargura(QBPlusNodo* p,QList<int> &list)
+{
+    if(p != 0){
+        if(p != 0){
+           for(int i=p->quantidadeDeFilhos()-1;i>=0;i--){
+                imprimirEmLargura(p->filhos[i],list);
+           }
+           for(int i=p->index-1;i>=0;i--){
+               list.push_back(p->valores[i]);
+           }
+
+        }
+        return list;
+    }
+
+
+    return list;
+}
+
+bool QBPlus::salvar(QString fileName)
+{
+//    QList<int> list;
+//    imprimirEmLargura(ptraiz,list);
+//
+//    QFile file(fileName);
+//
+//    if (file.open(QIODevice::WriteOnly|QIODevice::Text)){
+//        for(int i=0;i<list.count();i++){
+//            QString valor = QString::number(list[i]);
+//            file.write(valor.toAscii());
+//            file.write("\n");
+//        }
+//    }
+//
+//    file.close();
+
+    return true;
+}
+
+void QBPlus::setAlinhamento(int tipo)
+{
+//    tipoAlinhamento = tipo;
+//    if(tipoAlinhamento==0) alinhamentoPadrao(ptraiz,3);
+//    else alinhamentoCompleto(ptraiz,3);
+//    QBase::update();
+}
+
+
+
