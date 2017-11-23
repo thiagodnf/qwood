@@ -1,5 +1,21 @@
-# qwood
+<img width="280px" src="https://raw.githubusercontent.com/thiagodnf/qwood/master/images/logo.png" >
+
 qt-based
+
+## Available Trees
+
+- Binary Search Tree (BST)
+- TRIE
+- Adelson-Velsky and Landis (AVL)
+- SPLAY
+- B 
+- B++
+- Open Hash
+
+## Screenshot
+
+![alt tag](https://raw.githubusercontent.com/thiagodnf/qwood/master/images/screenshot.png)
+
 
 ## Install
 
