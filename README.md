@@ -1,6 +1,6 @@
-<img width="280px" src="https://raw.githubusercontent.com/thiagodnf/qwood/master/images/logo.png" >
+<img width="320px" src="https://raw.githubusercontent.com/thiagodnf/qwood/master/images/logo.png" >
 
-qt-based
+Data structure visualization tool based on Qt
 
 ## Available Trees
 
